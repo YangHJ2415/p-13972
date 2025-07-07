@@ -22,19 +22,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class ApiV1MemberController {
     private final MemberService memberService; // 회원 비즈니스 로직 사용
 
-    record MemberJoinReqBody( // 회원가입 요청 바디 정의 (record는 불변 DTO 역할)
-                              @NotBlank
-                              @Size(min = 2, max = 30)
-                              String username,
-                              @NotBlank
-                              @Size(min = 2, max = 30)
-                              String password,
-                              @NotBlank
-                              @Size(min = 2, max = 30)
-                              String nickname
+    // 회원가입 요청 바디 정의
+    record MemberJoinReqBody( // record는 불변 DTO 역할
+        @NotBlank
+        @Size(min = 2, max = 30)
+        String username,
+        @NotBlank
+        @Size(min = 2, max = 30)
+        String password,
+        @NotBlank
+        @Size(min = 2, max = 30)
+        String nickname
     ) {
     }
 
+    // 회원가입 요청 처리
     @PostMapping
     public RsData<MemberDto> join(
             @Valid @RequestBody MemberJoinReqBody reqBody) {
@@ -52,6 +54,7 @@ public class ApiV1MemberController {
         );
     }
 
+    // 로그인 요청 바디 정의
     record MemberLoginReqBody(
             @NotBlank
             @Size(min = 2, max = 30)
@@ -62,22 +65,27 @@ public class ApiV1MemberController {
     ) {
     }
 
+    // 로그인 응답 바디 정의
     record MemberLoginResBody(
             MemberDto item,
             String apiKey
     ) {
     }
 
+    // 로그인 요청 처리
     @PostMapping("/login")
     public RsData<MemberLoginResBody> login(
             @Valid @RequestBody MemberLoginReqBody reqBody
     ) {
+        // 아이디로 회원 조회
         Member member = memberService.findByUsername(reqBody.username())
                 .orElseThrow(() -> new ServiceException("401-1", "존재하지 않는 아이디입니다."));
 
+        // 비밀번호 일치 여부 확인
         if (!member.getPassword().equals(reqBody.password()))
             throw new ServiceException("401-2", "비밀번호가 일치하지 않습니다.");
 
+        // 로그인 성공 시 API 키 반환
         return new RsData<>(
                 "200-1",
                 "%s님 환영합니다.".formatted(member.getName()),

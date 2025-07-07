@@ -10,6 +10,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -80,6 +81,7 @@ public class GlobalExceptionHandler {
         );
     }
 
+    // 요청 본문이 올바르지 않은 경우 발생하는 예외를 처리합니다.
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<RsData<Void>> handle(HttpMessageNotReadableException ex) {
         return new ResponseEntity<>(
@@ -91,7 +93,24 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(ServiceException.class) // 서비스 예외를 처리하는 메소드
+    // 요청 헤더가 누락된 경우 발생하는 예외를 처리합니다.
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<RsData<Void>> handle(MissingRequestHeaderException ex) {
+        return new ResponseEntity<>(
+                new RsData<>(
+                        "400-1",
+                        "%s-%s-%s".formatted( // 요청 헤더 이름, 유효성 검사 코드, 오류 메시지
+                                ex.getHeaderName(),
+                                "NotBlank",
+                                ex.getLocalizedMessage()
+                        )
+                ),
+                BAD_REQUEST
+        );
+    }
+
+    // 서비스 예외를 처리하는 메소드입니다.
+    @ExceptionHandler(ServiceException.class)
     public RsData<Void> handle(ServiceException ex, HttpServletResponse response) {
 
         RsData<Void> rsData = ex.getRsData(); // ServiceException에서 정의한 getRsData() 메소드를 호출하여 RsData 객체를 생성

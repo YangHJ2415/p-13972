@@ -79,8 +79,9 @@ public class ApiV1PostController {
     @Operation(summary = "작성")
     public RsData<PostDto> write( // 글 작성 API
             @Valid @RequestBody PostWriteReqBody reqBody, // 요청 바디 유효성 검사
-            @NotBlank @Size(min = 30, max = 50) String apiKey // API 키 유효성 검사
+            @NotBlank @Size(min = 30, max = 50) @RequestHeader("Authorization") String authorization // API 키를 Authorization 헤더에서 받음
     ) {
+        String apiKey = authorization.replace("Bearer ", ""); // Bearer 접두어 제거
         Member actor = memberService.findByApiKey(apiKey).orElseThrow(() -> new ServiceException("401-1", "존재하지 않는 apiKey 입니다.")); // API 키로 회원 조회
         Post post = postService.write(actor, reqBody.title, reqBody.content); // 글 작성
 
