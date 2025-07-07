@@ -6,6 +6,7 @@ import com.back.domain.post.post.entity.Post;
 import com.back.domain.post.post.service.PostService;
 import com.back.domain.post.postComment.dto.PostCommentDto;
 import com.back.domain.post.postComment.entity.PostComment;
+import com.back.global.exception.ServiceException;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -60,11 +61,18 @@ public class ApiV1PostCommentController {
     @Operation(summary = "삭제")
     public RsData<Void> delete(
             @PathVariable int postId,
-            @PathVariable int id
+            @PathVariable int id,
+            @NotBlank @Size(min = 30, max = 50) @RequestHeader("Authorization") String authorization
     ) {
+        String apiKey = authorization.replace("Bearer ", ""); // Bearer 접두어 제거
+        Member actor = memberService.findByApiKey(apiKey).orElseThrow(() -> new ServiceException("401-1", "존재하지 않는 apiKey 입니다.")); // API 키로 회원 조회
+
         Post post = postService.findById(postId).get();
 
         PostComment postComment = post.findCommentById(id).get();
+
+        if (!actor.equals(postComment.getAuthor())) // 현재 사용자가 댓글 작성자와 일치하는지 확인
+            throw new ServiceException("403-1", "댓글 삭제 권한이 없습니다.");
 
         postService.deleteComment(post, postComment);
 
@@ -88,11 +96,17 @@ public class ApiV1PostCommentController {
     public RsData<Void> modify(
             @PathVariable int postId,
             @PathVariable int id,
-            @Valid @RequestBody PostCommentModifyReqBody reqBody
+            @Valid @RequestBody PostCommentModifyReqBody reqBody,
+            @NotBlank @Size(min = 30, max = 50) @RequestHeader("Authrization") String authorization  // API 키를 Authorization 헤더에서 받음
     ) {
+        String apiKey = authorization.replace("Bearer ", "");
+        Member actor = memberService.findByApiKey(apiKey).orElseThrow(() -> new ServiceException("401-1", "존재하지 않는 apiKey 입니다."));
+
         Post post = postService.findById(postId).get();
 
         PostComment postComment = post.findCommentById(id).get();
+
+        if(!actor.equals(postComment.getAuthor())) throw new ServiceException("403-1", "댓글 수정 권한이 없습니다.");
 
         postService.modifyComment(postComment, reqBody.content);
 
@@ -115,10 +129,14 @@ public class ApiV1PostCommentController {
     @Operation(summary = "작성")
     public RsData<PostCommentDto> write(
             @PathVariable int postId,
-            @Valid @RequestBody PostCommentWriteReqBody reqBody
+            @Valid @RequestBody PostCommentWriteReqBody reqBody,
+            @NotBlank @Size(min = 30, max = 50) @RequestHeader("Authorization") String authorization
     ) {
+        String apiKey = authorization.replace("Bearer ", "");
+        Member actor = memberService.findByApiKey(apiKey).orElseThrow(() -> new ServiceException("401-1", "존재하지 않는 apiKey 입니다."));
+
         Post post = postService.findById(postId).get();
-        Member actor = memberService.findByUsername("user1").get(); // 임시로 작성자를 user1로 지정
+
         PostComment postComment = postService.writeComment(actor, post, reqBody.content);
 
         // 트랜잭션 끝난 후 수행되어야 하는 더티체킹 및 여러가지 작업들을 지금 당장 수행해라.
