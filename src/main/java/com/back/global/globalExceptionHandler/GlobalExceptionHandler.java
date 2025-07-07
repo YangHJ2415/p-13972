@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
-@RestControllerAdvice
+@RestControllerAdvice // 모든 컨트롤러에서 발생하는 예외를 처리하는 어드바이스 클래스, ControllerAdvice + ResponseBody
 @RequiredArgsConstructor
 public class GlobalExceptionHandler {
     @ExceptionHandler(NoSuchElementException.class)
@@ -34,7 +34,7 @@ public class GlobalExceptionHandler {
         );
     }
 
-
+    // 유효성 검사 실패 시 발생하는 예외를 처리합니다.
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<RsData<Void>> handle(ConstraintViolationException ex) {
         String message = ex.getConstraintViolations()
@@ -91,11 +91,11 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(ServiceException.class)
+    @ExceptionHandler(ServiceException.class) // 서비스 예외를 처리하는 메소드
     public RsData<Void> handle(ServiceException ex, HttpServletResponse response) {
-        RsData<Void> rsData = ex.getRsData();
 
-        response.setStatus(rsData.statusCode());
+        RsData<Void> rsData = ex.getRsData(); // ServiceException에서 정의한 getRsData() 메소드를 호출하여 RsData 객체를 생성
+        response.setStatus(rsData.statusCode()); // HTTP 응답 상태 코드를 설정합니다.
 
         return rsData;
     }

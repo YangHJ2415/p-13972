@@ -14,11 +14,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@Validated // 유효성 검사 활성화
 @RequestMapping("/api/v1/posts")
 @RequiredArgsConstructor
 @Tag(name = "ApiV1PostController", description = "API 글 컨트롤러")
@@ -75,18 +77,17 @@ public class ApiV1PostController {
     @PostMapping
     @Transactional
     @Operation(summary = "작성")
-    public RsData<PostDto> write(
-            @Valid @RequestBody PostWriteReqBody reqBody,
-            @NotBlank @Size(min = 30, max = 50) String apiKey
+    public RsData<PostDto> write( // 글 작성 API
+            @Valid @RequestBody PostWriteReqBody reqBody, // 요청 바디 유효성 검사
+            @NotBlank @Size(min = 30, max = 50) String apiKey // API 키 유효성 검사
     ) {
-        Member actor = memberService.findByApiKey(apiKey).orElseThrow(() -> new ServiceException("401-1", "존재하지 않는 apiKey 입니다."));
+        Member actor = memberService.findByApiKey(apiKey).orElseThrow(() -> new ServiceException("401-1", "존재하지 않는 apiKey 입니다.")); // API 키로 회원 조회
+        Post post = postService.write(actor, reqBody.title, reqBody.content); // 글 작성
 
-        Post post = postService.write(actor, reqBody.title, reqBody.content);
-
-        return new RsData<>(
+        return new RsData<>( // 응답 데이터 생성
                 "201-1",
                 "%d번 글이 작성되었습니다.".formatted(post.getId()),
-                new PostDto(post)
+                new PostDto(post) // 응답 바디에 작성자 이름, 생성일 등 포함
         );
     }
 
