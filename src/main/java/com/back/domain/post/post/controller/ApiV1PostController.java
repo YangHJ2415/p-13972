@@ -1,11 +1,11 @@
 package com.back.domain.post.post.controller;
 
 import com.back.domain.member.member.entity.Member;
-import com.back.domain.member.member.service.MemberService;
 import com.back.domain.post.post.dto.PostDto;
 import com.back.domain.post.post.entity.Post;
 import com.back.domain.post.post.service.PostService;
 import com.back.global.exception.ServiceException;
+import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,7 +26,7 @@ import java.util.List;
 @Tag(name = "ApiV1PostController", description = "API 글 컨트롤러")
 public class ApiV1PostController {
     private final PostService postService;
-    private final MemberService memberService;
+    private final Rq rq;
 
     @GetMapping
     @Transactional(readOnly = true)
@@ -53,11 +53,9 @@ public class ApiV1PostController {
     @Transactional
     @Operation(summary = "삭제")
     public RsData<Void> delete(
-            @PathVariable int id,
-            @NotBlank @Size(min = 30, max = 50) @RequestHeader("Authorization") String authorization // API 키를 Authorization 헤더에서 받음
+            @PathVariable int id
     ){
-        String apiKey = authorization.replace("Bearer ", ""); // Bearer 접두어 제거
-        Member actor = memberService.findByApiKey(apiKey).orElseThrow(() -> new ServiceException("401-1", "존재하지 않는 apiKey 입니다.")); // API 키로 회원 조회
+        Member actor = rq.getActor(); // 현재 로그인한 사용자 정보 가져오기
 
         Post post = postService.findById(id).get();
         if (!actor.equals(post.getAuthor()))
@@ -86,12 +84,11 @@ public class ApiV1PostController {
     @Transactional
     @Operation(summary = "작성")
     public RsData<PostDto> write( // 글 작성 API
-            @Valid @RequestBody PostWriteReqBody reqBody, // 요청 바디 유효성 검사
-            @NotBlank @Size(min = 30, max = 50) @RequestHeader("Authorization") String authorization // API 키를 Authorization 헤더에서 받음
+            @Valid @RequestBody PostWriteReqBody reqBody // 요청 바디 유효성 검사
     ) {
-        String apiKey = authorization.replace("Bearer ", ""); // Bearer 접두어 제거
-        Member actor = memberService.findByApiKey(apiKey).orElseThrow(() -> new ServiceException("401-1", "존재하지 않는 apiKey 입니다.")); // API 키로 회원 조회
-        Post post = postService.write(actor, reqBody.title, reqBody.content); // 글 작성
+        Member actor = rq.getActor(); // 현재 로그인한 사용자 정보 가져오기
+
+        Post post = postService.write(actor, reqBody.title, reqBody.content); // 글 작성 서비스 호출
 
         return new RsData<>( // 응답 데이터 생성
                 "201-1",
@@ -115,11 +112,9 @@ public class ApiV1PostController {
     @Operation(summary = "수정")
     public RsData<Void> modify(
             @PathVariable int id,
-            @Valid @RequestBody PostModifyReqBody reqBody,
-            @NotBlank @Size(min = 30, max = 50) @RequestHeader("Authorization") String authorization // API 키를 Authorization 헤더에서 받음
-    ) {
-        String apiKey = authorization.replace("Bearer ", ""); // Bearer 접두어 제거
-        Member actor = memberService.findByApiKey(apiKey).orElseThrow(() -> new ServiceException("401-1", "존재하지 않는 apiKey 입니다.")); // API 키로 회원 조회
+            @Valid @RequestBody PostModifyReqBody reqBody
+    ){
+        Member actor = rq.getActor(); // 현재 로그인한 사용자 정보 가져오기
 
         Post post = postService.findById(id).get();
         if (!actor.equals(post.getAuthor())) { // 작성자와 현재 사용자가 일치하는지 확인
