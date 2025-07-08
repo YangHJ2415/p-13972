@@ -1,12 +1,12 @@
 package com.back.domain.post.postComment.controller;
 
 import com.back.domain.member.member.entity.Member;
-import com.back.domain.member.member.service.MemberService;
 import com.back.domain.post.post.entity.Post;
 import com.back.domain.post.post.service.PostService;
 import com.back.domain.post.postComment.dto.PostCommentDto;
 import com.back.domain.post.postComment.entity.PostComment;
 import com.back.global.exception.ServiceException;
+import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,17 +15,19 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@Validated
 @RequestMapping("/api/v1/posts/{postId}/comments")
 @RequiredArgsConstructor
 @Tag(name = "ApiV1PostCommentController", description = "API 댓글 컨트롤러")
 public class ApiV1PostCommentController {
     private final PostService postService;
-    private final MemberService memberService;
+    private final Rq rq;
 
     @GetMapping
     @Transactional(readOnly = true)
@@ -61,11 +63,9 @@ public class ApiV1PostCommentController {
     @Operation(summary = "삭제")
     public RsData<Void> delete(
             @PathVariable int postId,
-            @PathVariable int id,
-            @NotBlank @Size(min = 30, max = 50) @RequestHeader("Authorization") String authorization
+            @PathVariable int id
     ) {
-        String apiKey = authorization.replace("Bearer ", ""); // Bearer 접두어 제거
-        Member actor = memberService.findByApiKey(apiKey).orElseThrow(() -> new ServiceException("401-1", "존재하지 않는 apiKey 입니다.")); // API 키로 회원 조회
+        Member actor = rq.getActor();
 
         Post post = postService.findById(postId).get();
 
@@ -96,11 +96,9 @@ public class ApiV1PostCommentController {
     public RsData<Void> modify(
             @PathVariable int postId,
             @PathVariable int id,
-            @Valid @RequestBody PostCommentModifyReqBody reqBody,
-            @NotBlank @Size(min = 30, max = 50) @RequestHeader("Authrization") String authorization  // API 키를 Authorization 헤더에서 받음
+            @Valid @RequestBody PostCommentModifyReqBody reqBody
     ) {
-        String apiKey = authorization.replace("Bearer ", "");
-        Member actor = memberService.findByApiKey(apiKey).orElseThrow(() -> new ServiceException("401-1", "존재하지 않는 apiKey 입니다."));
+        Member actor = rq.getActor();
 
         Post post = postService.findById(postId).get();
 
@@ -129,11 +127,9 @@ public class ApiV1PostCommentController {
     @Operation(summary = "작성")
     public RsData<PostCommentDto> write(
             @PathVariable int postId,
-            @Valid @RequestBody PostCommentWriteReqBody reqBody,
-            @NotBlank @Size(min = 30, max = 50) @RequestHeader("Authorization") String authorization
+            @Valid @RequestBody PostCommentWriteReqBody reqBody
     ) {
-        String apiKey = authorization.replace("Bearer ", "");
-        Member actor = memberService.findByApiKey(apiKey).orElseThrow(() -> new ServiceException("401-1", "존재하지 않는 apiKey 입니다."));
+        Member actor = rq.getActor();
 
         Post post = postService.findById(postId).get();
 
